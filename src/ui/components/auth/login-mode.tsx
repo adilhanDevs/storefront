@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { useSaleorAuthContext } from "@saleor/auth-sdk/react";
 import { Button } from "@/ui/components/ui/button";
 import { Input } from "@/ui/components/ui/input";
 import { Label } from "@/ui/components/ui/label";
@@ -12,9 +11,7 @@ import { Label } from "@/ui/components/ui/label";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function LoginMode() {
-	const router = useRouter();
 	const params = useParams<{ channel: string }>();
-	const { signIn } = useSaleorAuthContext();
 
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -41,25 +38,7 @@ export function LoginMode() {
 		setIsSubmitting(true);
 
 		try {
-			const result = await signIn({ email, password });
-
-			if (result.data?.tokenCreate?.errors?.length) {
-				const err = result.data.tokenCreate.errors[0];
-				const isInvalidCredentials =
-					err.message?.toLowerCase().includes("invalid") ||
-					err.message?.toLowerCase().includes("credentials");
-				setError(
-					isInvalidCredentials
-						? "Invalid email or password. Please try again."
-						: err.message || "Sign in failed",
-				);
-				return;
-			}
-
-			if (result.data?.tokenCreate?.token) {
-				router.push(`/${params.channel}`);
-				router.refresh();
-			}
+			setError("Sign in is disabled in the static storefront build.");
 		} catch {
 			setError("An error occurred. Please try again.");
 		} finally {
@@ -79,30 +58,9 @@ export function LoginMode() {
 		setIsSubmitting(true);
 
 		try {
-			const response = await fetch("/api/auth/reset-password", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					email,
-					channel: params.channel,
-					redirectUrl: `${window.location.origin}/${params.channel}/login`,
-				}),
-			});
-
-			const data = (await response.json()) as {
-				errors?: Array<{ message: string }>;
-				success?: boolean;
-			};
-
-			if (data.errors?.length) {
-				setError(data.errors[0].message || "Failed to send reset link");
-				return;
-			}
-
-			setResetEmailSent(true);
-			setResetMessage(
-				`If an account exists for ${email}, a password reset link has been sent. Note: You can only request one reset link every 15 minutes.`,
-			);
+			setResetEmailSent(false);
+			setResetMessage("");
+			setError("Password reset is disabled in the static storefront build.");
 		} catch {
 			setError("An error occurred. Please try again.");
 		} finally {

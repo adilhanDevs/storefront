@@ -17,7 +17,6 @@ export const metadata = {
  * on-demand revalidation via cacheTag is the intended recovery path.
  */
 async function getFeaturedProducts(channel: string) {
-	"use cache";
 	applyCacheProfile(CACHE_PROFILES.collections, "featured-products");
 
 	const result = await executePublicGraphQL(ProductListByCollectionDocument, {

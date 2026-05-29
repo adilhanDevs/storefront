@@ -1,17 +1,23 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { type ResolvingMetadata, type Metadata } from "next";
-import { ProductListByCollectionDocument, ProductOrderField, OrderDirection } from "@/gql/graphql";
+import { ProductListByCollectionDocument } from "@/gql/graphql";
 import { executePublicGraphQL } from "@/lib/graphql";
 import { CACHE_PROFILES, applyCacheProfile } from "@/lib/cache-manifest";
-import { getPaginatedListVariables } from "@/lib/utils";
 import { parseEditorJSToText } from "@/lib/editorjs";
 import { CategoryHero, transformToProductCard } from "@/ui/components/plp";
-import { buildSortVariables, buildFilterVariables } from "@/ui/components/plp/filter-utils";
 import { CollectionPageClient } from "./client";
 
+import { MOCK_COLLECTIONS, MOCK_CHANNEL } from "@/lib/mocks";
+
+export async function generateStaticParams() {
+	return Object.keys(MOCK_COLLECTIONS).map((slug) => ({
+		channel: MOCK_CHANNEL,
+		slug,
+	}));
+}
+
 async function getCollectionData(slug: string, channel: string) {
-	"use cache";
 	applyCacheProfile(CACHE_PROFILES.collections, slug);
 
 	const result = await executePublicGraphQL(ProductListByCollectionDocument, {
@@ -29,14 +35,6 @@ async function getCollectionData(slug: string, channel: string) {
 
 type PageProps = {
 	params: Promise<{ slug: string; channel: string }>;
-	searchParams: Promise<{
-		cursor?: string;
-		direction?: string;
-		sort?: string;
-		price?: string;
-		colors?: string;
-		sizes?: string;
-	}>;
 };
 
 export const generateMetadata = async (props: PageProps, parent: ResolvingMetadata): Promise<Metadata> => {
@@ -58,18 +56,12 @@ export const generateMetadata = async (props: PageProps, parent: ResolvingMetada
 export default function Page(props: PageProps) {
 	return (
 		<Suspense fallback={<PageSkeleton />}>
-			<CollectionContent params={props.params} searchParams={props.searchParams} />
+			<CollectionContent params={props.params} />
 		</Suspense>
 	);
 }
 
-async function CollectionContent({
-	params: paramsPromise,
-	searchParams,
-}: {
-	params: PageProps["params"];
-	searchParams: PageProps["searchParams"];
-}) {
+async function CollectionContent({ params: paramsPromise }: { params: PageProps["params"] }) {
 	const params = await paramsPromise;
 	const collection = await getCollectionData(params.slug, params.channel);
 
@@ -93,35 +85,23 @@ async function CollectionContent({
 				breadcrumbs={breadcrumbs}
 			/>
 			<Suspense fallback={<ProductsGridSkeleton />}>
-				<CollectionProducts params={paramsPromise} searchParams={searchParams} />
+				<CollectionProducts params={paramsPromise} />
 			</Suspense>
 		</>
 	);
 }
 
-async function CollectionProducts({
-	params: paramsPromise,
-	searchParams: searchParamsPromise,
-}: {
-	params: PageProps["params"];
-	searchParams: PageProps["searchParams"];
-}) {
-	const [params, searchParams] = await Promise.all([paramsPromise, searchParamsPromise]);
-
-	const paginationVariables = getPaginatedListVariables({ params: searchParams });
-	const sortBy = buildSortVariables(searchParams.sort) ?? {
-		field: ProductOrderField.Collection,
-		direction: OrderDirection.Asc,
-	};
-	const filter = buildFilterVariables({ priceRange: searchParams.price });
+async function CollectionProducts({ params: paramsPromise }: { params: PageProps["params"] }) {
+	const params = await paramsPromise;
 
 	const result = await executePublicGraphQL(ProductListByCollectionDocument, {
 		variables: {
 			slug: params.slug,
 			channel: params.channel,
-			...paginationVariables,
-			sortBy,
-			filter,
+			first: 100,
+			after: null,
+			sortBy: null,
+			filter: {},
 		},
 		revalidate: 300,
 	});

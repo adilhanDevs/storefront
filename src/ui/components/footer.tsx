@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { LinkWithChannel } from "../atoms/link-with-channel";
-import { ChannelSelect } from "./channel-select";
-import { ChannelsListDocument, MenuGetBySlugDocument } from "@/gql/graphql";
+import { MenuGetBySlugDocument } from "@/gql/graphql";
 import { executePublicGraphQL } from "@/lib/graphql";
 import { CACHE_PROFILES, applyCacheProfile } from "@/lib/cache-manifest";
 import { CopyrightText } from "./copyright-text";
@@ -23,27 +22,8 @@ const defaultFooterLinks = {
 	],
 };
 
-/** Cached channels list - rarely changes */
-async function getChannels() {
-	"use cache";
-	applyCacheProfile(CACHE_PROFILES.channels);
-
-	if (!process.env.SALEOR_APP_TOKEN) {
-		return null;
-	}
-
-	const result = await executePublicGraphQL(ChannelsListDocument, {
-		headers: {
-			Authorization: `Bearer ${process.env.SALEOR_APP_TOKEN}`,
-		},
-	});
-
-	return result.ok ? result.data : null;
-}
-
 /** Cached footer menu */
 async function getFooterMenu(channel: string) {
-	"use cache";
 	applyCacheProfile(CACHE_PROFILES.footerMenu);
 
 	const result = await executePublicGraphQL(MenuGetBySlugDocument, {
@@ -55,7 +35,7 @@ async function getFooterMenu(channel: string) {
 }
 
 export async function Footer({ channel }: { channel: string }) {
-	const [footerLinks, channels] = await Promise.all([getFooterMenu(channel), getChannels()]);
+	const footerLinks = await getFooterMenu(channel);
 
 	const menuItems = footerLinks?.menu?.items || [];
 
@@ -176,16 +156,6 @@ export async function Footer({ channel }: { channel: string }) {
 						</>
 					)}
 				</div>
-
-				{/* Channel selector */}
-				{channels?.channels && (
-					<div className="mt-8 text-neutral-400">
-						<label className="flex items-center gap-2 text-sm">
-							<span>Change currency:</span>
-							<ChannelSelect channels={channels.channels} />
-						</label>
-					</div>
-				)}
 
 				{/* Bottom bar */}
 				<div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-8 sm:flex-row">

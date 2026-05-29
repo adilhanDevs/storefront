@@ -1,5 +1,4 @@
 import { timingSafeEqual, createHmac } from "crypto";
-import { NextRequest } from "next/server";
 
 const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET;
 const WEBHOOK_SECRET = process.env.SALEOR_WEBHOOK_SECRET;
@@ -32,7 +31,7 @@ export function verifySecret(provided: string | null | undefined): boolean {
  * Extract the bearer token from the Authorization header.
  * Falls back to x-revalidate-secret header, then query-string `?secret=` (deprecated).
  */
-export function extractBearerToken(request: NextRequest): string | null {
+export function extractBearerToken(request: Request): string | null {
 	const authHeader = request.headers.get("authorization");
 	if (authHeader?.startsWith("Bearer ")) {
 		return authHeader.slice(7);
@@ -41,7 +40,7 @@ export function extractBearerToken(request: NextRequest): string | null {
 	const headerSecret = request.headers.get("x-revalidate-secret");
 	if (headerSecret) return headerSecret;
 
-	const querySecret = request.nextUrl.searchParams.get("secret");
+	const querySecret = new URL(request.url).searchParams.get("secret");
 	if (querySecret) {
 		console.warn(
 			"[Security] Secret passed via query string is deprecated. Use `Authorization: Bearer <token>` header instead.",

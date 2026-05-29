@@ -20,7 +20,7 @@ export function SignUpForm() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState("");
-	const [success, setSuccess] = useState(false);
+	const [success] = useState(false);
 
 	const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -47,37 +47,7 @@ export function SignUpForm() {
 		setIsSubmitting(true);
 
 		try {
-			// Call Saleor accountRegister mutation
-			const response = await fetch("/api/auth/register", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					email,
-					password,
-					firstName,
-					lastName,
-					channel: params.channel,
-					redirectUrl: `${window.location.origin}/${params.channel}/login`,
-				}),
-			});
-
-			const data = (await response.json()) as {
-				errors?: Array<{ message: string; code?: string }>;
-				user?: { id: string; email: string };
-			};
-
-			if (data.errors?.length) {
-				const err = data.errors[0];
-				if (err.code === "UNIQUE") {
-					setError("An account with this email already exists. Please sign in instead.");
-				} else {
-					setError(err.message || "Failed to create account");
-				}
-				return;
-			}
-
-			// Success - show confirmation message
-			setSuccess(true);
+			setError("Account creation is disabled in the static storefront build.");
 		} catch {
 			setError("An error occurred. Please try again.");
 		} finally {

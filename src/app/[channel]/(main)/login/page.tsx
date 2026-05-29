@@ -1,79 +1,29 @@
-import { Suspense } from "react";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { LoginForm } from "@/ui/components/login-form";
-import { executeAuthenticatedGraphQL } from "@/lib/graphql";
-import { CurrentUserDocument } from "@/gql/graphql";
-import { AuthProvider } from "@/lib/auth";
+import { UserRound } from "lucide-react";
+import { LinkWithChannel } from "@/ui/atoms/link-with-channel";
 
 export const metadata = {
 	title: "Sign In",
-	description: "Sign in to your account to access your orders and saved addresses.",
+	description: "Sign in is disabled in the static storefront build.",
 };
 
-export default function LoginPage(props: { params: Promise<{ channel: string }> }) {
+export default function LoginPage() {
 	return (
-		<Suspense fallback={<LoginSkeleton />}>
-			<LoginContent params={props.params} />
-		</Suspense>
-	);
-}
-
-function LoginSkeleton() {
-	return (
-		<section className="mx-auto max-w-7xl p-8 pb-24">
-			<div className="mx-auto my-16 w-full max-w-md">
-				<div className="rounded-lg border border-border bg-card p-8 shadow-sm">
-					<div className="mb-6 flex flex-col items-center gap-2">
-						<div className="h-7 w-40 animate-pulse rounded bg-secondary" />
-						<div className="h-4 w-56 animate-pulse rounded bg-secondary" />
-					</div>
-					<div className="space-y-4">
-						<div className="space-y-1.5">
-							<div className="h-4 w-24 animate-pulse rounded bg-secondary" />
-							<div className="h-12 w-full animate-pulse rounded-md bg-secondary" />
-						</div>
-						<div className="space-y-1.5">
-							<div className="h-4 w-16 animate-pulse rounded bg-secondary" />
-							<div className="h-12 w-full animate-pulse rounded-md bg-secondary" />
-						</div>
-						<div className="flex justify-end">
-							<div className="h-4 w-28 animate-pulse rounded bg-secondary" />
-						</div>
-						<div className="bg-foreground/10 h-12 w-full animate-pulse rounded-md" />
-					</div>
+		<section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+			<div className="mx-auto max-w-md text-center">
+				<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+					<UserRound className="h-8 w-8 text-muted-foreground" />
 				</div>
+				<h1 className="text-3xl font-semibold tracking-tight">Sign in is disabled</h1>
+				<p className="mt-3 text-sm leading-6 text-muted-foreground">
+					This deployment is a static catalog. Authentication and customer sessions are not included.
+				</p>
+				<LinkWithChannel
+					href="/products"
+					className="hover:bg-foreground/90 mt-8 inline-flex h-11 items-center justify-center rounded-md bg-foreground px-6 text-sm font-medium text-background transition-colors"
+				>
+					Browse products
+				</LinkWithChannel>
 			</div>
-		</section>
-	);
-}
-
-async function LoginContent({ params: paramsPromise }: { params: Promise<{ channel: string }> }) {
-	const { channel } = await paramsPromise;
-
-	let hasCookies = false;
-	try {
-		const cookieStore = await cookies();
-		hasCookies = cookieStore.getAll().length > 0;
-	} catch {
-		// Static generation -- cookies() unavailable
-	}
-
-	if (hasCookies) {
-		const result = await executeAuthenticatedGraphQL(CurrentUserDocument, {
-			cache: "no-cache",
-		});
-
-		if (result.ok && result.data.me) {
-			redirect(`/${channel}`);
-		}
-	}
-
-	return (
-		<section className="mx-auto max-w-7xl p-8 pb-24">
-			<AuthProvider>
-				<LoginForm />
-			</AuthProvider>
 		</section>
 	);
 }

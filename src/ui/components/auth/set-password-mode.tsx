@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { Button } from "@/ui/components/ui/button";
 import { Input } from "@/ui/components/ui/input";
@@ -13,8 +13,7 @@ type Props = {
 	token: string;
 };
 
-export function SetPasswordMode({ email, token }: Props) {
-	const router = useRouter();
+export function SetPasswordMode({ email, token: _token }: Props) {
 	const params = useParams<{ channel: string }>();
 
 	const [password, setPassword] = useState("");
@@ -23,7 +22,7 @@ export function SetPasswordMode({ email, token }: Props) {
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState("");
-	const [success, setSuccess] = useState(false);
+	const [success] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -47,34 +46,7 @@ export function SetPasswordMode({ email, token }: Props) {
 		setIsSubmitting(true);
 
 		try {
-			const response = await fetch("/api/auth/set-password", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ email, token, password }),
-			});
-
-			const data = (await response.json()) as {
-				errors?: Array<{ message: string; code?: string }>;
-				success?: boolean;
-			};
-
-			if (data.errors?.length) {
-				const err = data.errors[0];
-				if (err.code === "INVALID_TOKEN" || err.message?.includes("token")) {
-					setError("This password reset link has expired. Please request a new one.");
-				} else {
-					setError(err.message || "Failed to set password");
-				}
-				return;
-			}
-
-			if (data.success) {
-				setSuccess(true);
-				setTimeout(() => {
-					router.push(`/${params.channel}/login`);
-					router.refresh();
-				}, 2000);
-			}
+			setError("Password reset is disabled in the static storefront build.");
 		} catch {
 			setError("An error occurred. Please try again.");
 		} finally {

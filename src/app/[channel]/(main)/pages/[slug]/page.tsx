@@ -7,6 +7,15 @@ import { executePublicGraphQL } from "@/lib/graphql";
 
 const parser = edjsHTML();
 
+import { MOCK_CHANNEL, MOCK_PAGES } from "@/lib/mocks";
+
+export async function generateStaticParams() {
+	return Object.keys(MOCK_PAGES).map((slug) => ({
+		channel: MOCK_CHANNEL,
+		slug,
+	}));
+}
+
 export const generateMetadata = async (props: { params: Promise<{ slug: string }> }): Promise<Metadata> => {
 	const params = await props.params;
 	const result = await executePublicGraphQL(PageGetBySlugDocument, {

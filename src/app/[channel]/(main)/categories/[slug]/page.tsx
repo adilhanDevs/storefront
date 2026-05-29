@@ -4,14 +4,20 @@ import { type ResolvingMetadata, type Metadata } from "next";
 import { ProductListByCategoryDocument } from "@/gql/graphql";
 import { executePublicGraphQL } from "@/lib/graphql";
 import { CACHE_PROFILES, applyCacheProfile } from "@/lib/cache-manifest";
-import { getPaginatedListVariables } from "@/lib/utils";
 import { parseEditorJSToText } from "@/lib/editorjs";
 import { CategoryHero, transformToProductCard } from "@/ui/components/plp";
-import { buildSortVariables, buildFilterVariables } from "@/ui/components/plp/filter-utils";
 import { CategoryPageClient } from "./client";
 
+import { MOCK_CATEGORIES, MOCK_CHANNEL } from "@/lib/mocks";
+
+export async function generateStaticParams() {
+	return Object.keys(MOCK_CATEGORIES).map((slug) => ({
+		channel: MOCK_CHANNEL,
+		slug,
+	}));
+}
+
 async function getCategoryData(slug: string, channel: string) {
-	"use cache";
 	applyCacheProfile(CACHE_PROFILES.categories, slug);
 
 	const result = await executePublicGraphQL(ProductListByCategoryDocument, {
@@ -29,14 +35,6 @@ async function getCategoryData(slug: string, channel: string) {
 
 type PageProps = {
 	params: Promise<{ slug: string; channel: string }>;
-	searchParams: Promise<{
-		cursor?: string;
-		direction?: string;
-		sort?: string;
-		price?: string;
-		colors?: string;
-		sizes?: string;
-	}>;
 };
 
 export const generateMetadata = async (props: PageProps, parent: ResolvingMetadata): Promise<Metadata> => {
@@ -58,18 +56,12 @@ export const generateMetadata = async (props: PageProps, parent: ResolvingMetada
 export default function Page(props: PageProps) {
 	return (
 		<Suspense fallback={<PageSkeleton />}>
-			<CategoryContent params={props.params} searchParams={props.searchParams} />
+			<CategoryContent params={props.params} />
 		</Suspense>
 	);
 }
 
-async function CategoryContent({
-	params: paramsPromise,
-	searchParams,
-}: {
-	params: PageProps["params"];
-	searchParams: PageProps["searchParams"];
-}) {
+async function CategoryContent({ params: paramsPromise }: { params: PageProps["params"] }) {
 	const params = await paramsPromise;
 	const category = await getCategoryData(params.slug, params.channel);
 
@@ -93,32 +85,23 @@ async function CategoryContent({
 				breadcrumbs={breadcrumbs}
 			/>
 			<Suspense fallback={<ProductsGridSkeleton />}>
-				<CategoryProducts params={paramsPromise} searchParams={searchParams} />
+				<CategoryProducts params={paramsPromise} />
 			</Suspense>
 		</>
 	);
 }
 
-async function CategoryProducts({
-	params: paramsPromise,
-	searchParams: searchParamsPromise,
-}: {
-	params: PageProps["params"];
-	searchParams: PageProps["searchParams"];
-}) {
-	const [params, searchParams] = await Promise.all([paramsPromise, searchParamsPromise]);
-
-	const paginationVariables = getPaginatedListVariables({ params: searchParams });
-	const sortBy = buildSortVariables(searchParams.sort);
-	const filter = buildFilterVariables({ priceRange: searchParams.price });
+async function CategoryProducts({ params: paramsPromise }: { params: PageProps["params"] }) {
+	const params = await paramsPromise;
 
 	const result = await executePublicGraphQL(ProductListByCategoryDocument, {
 		variables: {
 			slug: params.slug,
 			channel: params.channel,
-			...paginationVariables,
-			sortBy,
-			filter,
+			first: 100,
+			after: null,
+			sortBy: null,
+			filter: {},
 		},
 		revalidate: 300,
 	});

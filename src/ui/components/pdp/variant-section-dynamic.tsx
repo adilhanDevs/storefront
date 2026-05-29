@@ -1,11 +1,6 @@
-import { revalidatePath } from "next/cache";
-
 import { formatMoney, formatMoneyRange } from "@/lib/utils";
 import { getDiscountInfo } from "@/lib/pricing";
-import { CheckoutAddLineDocument, type ProductDetailsQuery } from "@/gql/graphql";
-import { executeAuthenticatedGraphQL } from "@/lib/graphql";
-import * as Checkout from "@/lib/checkout";
-
+import { type ProductDetailsQuery } from "@/gql/graphql";
 import { AddToCart } from "./add-to-cart";
 import { VariantSelectionSection } from "./variant-selection";
 import { StickyBar } from "./sticky-bar";
@@ -68,50 +63,6 @@ export async function VariantSectionDynamic({ product, channel, searchParams }: 
 				)
 			: null;
 
-	// Server action for adding to cart
-	async function addToCart() {
-		"use server";
-
-		if (!selectedVariantID) {
-			// Silently return - button should be disabled if no variant selected
-			return;
-		}
-
-		try {
-			const checkout = await Checkout.findOrCreate({
-				checkoutId: await Checkout.getIdFromCookies(channel),
-				channel: channel,
-			});
-
-			if (!checkout) {
-				// Log error server-side, UI will show via ErrorBoundary if needed
-				console.error("Add to cart: Failed to create checkout");
-				return;
-			}
-
-			await Checkout.saveIdToCookie(channel, checkout.id);
-
-			const addResult = await executeAuthenticatedGraphQL(CheckoutAddLineDocument, {
-				variables: {
-					id: checkout.id,
-					productVariantId: decodeURIComponent(selectedVariantID),
-				},
-				cache: "no-cache",
-			});
-
-			if (!addResult.ok) {
-				console.error("Add to cart failed:", addResult.error.message);
-				return;
-			}
-
-			revalidatePath("/cart");
-		} catch (error) {
-			// Log error server-side - the UI feedback comes from cart drawer/badge update
-			// For explicit error UI, would need useActionState (separate enhancement)
-			console.error("Add to cart failed:", error);
-		}
-	}
-
 	return (
 		<>
 			{/* Category + Sale/Stock badges row - order:1 so it appears ABOVE the h1 */}
@@ -130,7 +81,7 @@ export async function VariantSectionDynamic({ product, channel, searchParams }: 
 			</div>
 
 			{/* Rest of variant section - order:3 so it appears BELOW the h1 */}
-			<form action={addToCart} className="order-3 mt-4 space-y-6">
+			<div className="order-3 mt-4 space-y-6">
 				{/* Variant Selectors */}
 				<VariantSelectionSection
 					variants={variants}
@@ -148,9 +99,9 @@ export async function VariantSectionDynamic({ product, channel, searchParams }: 
 					disabledReason={disabledReason}
 				/>
 
-				{/* Sticky Add to Cart Bar (Mobile) */}
+				{/* Sticky Bar (Mobile) */}
 				<StickyBar productName={product.name} price={price} show={!isAddToCartDisabled} />
-			</form>
+			</div>
 		</>
 	);
 }

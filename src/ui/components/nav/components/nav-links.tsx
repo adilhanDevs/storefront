@@ -5,7 +5,6 @@ import { MenuGetBySlugDocument } from "@/gql/graphql";
 import { CACHE_PROFILES, applyCacheProfile } from "@/lib/cache-manifest";
 
 export const NavLinks = async ({ channel }: { channel: string }) => {
-	"use cache";
 	applyCacheProfile(CACHE_PROFILES.navigation);
 
 	const result = await executePublicGraphQL(MenuGetBySlugDocument, {

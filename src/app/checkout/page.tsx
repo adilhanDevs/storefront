@@ -1,49 +1,31 @@
-import { Suspense } from "react";
-import { invariant } from "ts-invariant";
-import { RootWrapper } from "./page-wrapper";
-import { Loader } from "@/ui/atoms/loader";
+import Link from "next/link";
+import { Lock } from "lucide-react";
+import { DefaultChannelSlug } from "@/app/config";
 
 export const metadata = {
 	title: "Checkout · Saleor Storefront example",
-	description: "Complete your purchase securely.",
+	description: "Checkout is disabled in the static storefront build.",
 };
 
-/**
- * Checkout page with Cache Components.
- * Entire page is dynamic (reads searchParams for checkout ID).
- */
-export default function CheckoutPage(props: {
-	searchParams: Promise<{ checkout?: string; order?: string }>;
-}) {
+export default function CheckoutPage() {
 	return (
-		<Suspense fallback={<CheckoutSkeleton />}>
-			<CheckoutContent searchParams={props.searchParams} />
-		</Suspense>
-	);
-}
-
-/**
- * Dynamic checkout content - reads searchParams at request time.
- */
-async function CheckoutContent({
-	searchParams: searchParamsPromise,
-}: {
-	searchParams: Promise<{ checkout?: string; order?: string }>;
-}) {
-	const searchParams = await searchParamsPromise;
-	invariant(process.env.NEXT_PUBLIC_SALEOR_API_URL, "Missing NEXT_PUBLIC_SALEOR_API_URL env variable");
-
-	if (!searchParams.checkout && !searchParams.order) {
-		return null;
-	}
-
-	return <RootWrapper saleorApiUrl={process.env.NEXT_PUBLIC_SALEOR_API_URL} />;
-}
-
-function CheckoutSkeleton() {
-	return (
-		<div className="flex min-h-screen items-center justify-center">
-			<Loader />
-		</div>
+		<section className="flex min-h-screen items-center justify-center px-4 py-16">
+			<div className="max-w-md text-center">
+				<div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+					<Lock className="h-8 w-8 text-muted-foreground" />
+				</div>
+				<h1 className="text-3xl font-semibold tracking-tight">Checkout is disabled</h1>
+				<p className="mt-3 text-sm leading-6 text-muted-foreground">
+					This site is exported as static files for Vercel, so payments, sessions, and checkout mutations are
+					not available.
+				</p>
+				<Link
+					href={`/${DefaultChannelSlug}/products`}
+					className="hover:bg-foreground/90 mt-8 inline-flex h-11 items-center justify-center rounded-md bg-foreground px-6 text-sm font-medium text-background transition-colors"
+				>
+					Back to products
+				</Link>
+			</div>
+		</section>
 	);
 }

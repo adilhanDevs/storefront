@@ -23,7 +23,6 @@ import {
 // ============================================================================
 
 async function getProductData(slug: string, channel: string) {
-	"use cache";
 	applyCacheProfile(CACHE_PROFILES.products, slug);
 
 	const result = await executePublicGraphQL(ProductDetailsDocument, {
@@ -76,8 +75,18 @@ export async function generateMetadata(props: {
 	});
 }
 
-// NOTE: generateStaticParams is intentionally omitted for product pages.
-// All product pages are generated on-demand via ISR instead.
+// ============================================================================
+// Static Export
+// ============================================================================
+
+import { MOCK_PRODUCTS, MOCK_CHANNEL } from "@/lib/mocks";
+
+export async function generateStaticParams() {
+	return MOCK_PRODUCTS.map((product) => ({
+		channel: MOCK_CHANNEL,
+		slug: product.slug,
+	}));
+}
 
 // ============================================================================
 // Page Component
@@ -90,25 +99,20 @@ const parser = edjsHTML();
  * All cached product data + dynamic variant section stream inside
  * this boundary, not through the layout's main Suspense.
  */
-export default function ProductPage(props: {
-	params: Promise<{ slug: string; channel: string }>;
-	searchParams: Promise<{ variant?: string }>;
-}) {
+export default function ProductPage(props: { params: Promise<{ slug: string; channel: string }> }) {
 	return (
 		<Suspense fallback={<ProductPageSkeleton />}>
-			<ProductContent params={props.params} searchParams={props.searchParams} />
+			<ProductContent params={props.params} />
 		</Suspense>
 	);
 }
 
 async function ProductContent({
 	params: paramsPromise,
-	searchParams: searchParamsPromise,
 }: {
 	params: Promise<{ slug: string; channel: string }>;
-	searchParams: Promise<{ variant?: string }>;
 }) {
-	const [params, searchParams] = await Promise.all([paramsPromise, searchParamsPromise]);
+	const params = await paramsPromise;
 
 	const product = await getProductData(params.slug, params.channel);
 
@@ -117,7 +121,7 @@ async function ProductContent({
 	}
 
 	const variants = product.variants || [];
-	const selectedVariantId = searchParams.variant || (variants.length === 1 ? variants[0].id : undefined);
+	const selectedVariantId = variants.length > 0 ? variants[0].id : undefined;
 	const selectedVariant = variants.find((v) => v.id === selectedVariantId);
 
 	const descriptionHtml = parseDescription(product.description);
@@ -184,7 +188,7 @@ async function ProductContent({
 								<VariantSectionDynamic
 									product={product}
 									channel={params.channel}
-									searchParams={searchParamsPromise}
+									searchParams={Promise.resolve({ variant: selectedVariantId })}
 								/>
 							</Suspense>
 						</ErrorBoundary>

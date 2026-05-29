@@ -1,5 +1,3 @@
-import { cacheLife, cacheTag } from "next/cache";
-
 // ============================================================================
 // Cache Profile Definitions — single source of truth
 //
@@ -70,20 +68,15 @@ const profiles = {
 export const CACHE_PROFILES = profiles;
 
 // ============================================================================
-// Helpers for "use cache" functions
+// Static export helpers
 // ============================================================================
 
 /**
- * Apply cacheLife + cacheTag for a profile inside a "use cache" function body.
- * Pass `slug` when the profile's tagPattern contains a {slug} placeholder.
- *
- * Note: TypeScript cannot resolve cacheLife's overloads when passed a union
- * type, so we cast through `string`. This is safe because CacheLifeProfile
- * only contains valid Next.js built-in profile names.
+ * No-op in the static storefront build.
+ * The app is exported as files, so there is no runtime cache or revalidation.
  */
-export function applyCacheProfile(profile: CacheProfile, slug?: string) {
-	(cacheLife as (p: string) => void)(profile.cacheProfile);
-	cacheTag(slug ? profile.tagPattern.replace("{slug}", slug) : profile.tagPattern);
+export function applyCacheProfile(_profile: CacheProfile, _slug?: string) {
+	return;
 }
 
 // ============================================================================
